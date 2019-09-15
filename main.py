@@ -1,8 +1,9 @@
 import time
 import os
+import sys
 import pickle
 
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import WebDriverException, NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
 import dotenv
@@ -27,8 +28,8 @@ class Robot:
         self.locale = os.environ.get('LOCALE', 'ru,ru_RU')
         self.chromedriver_path = os.environ.get('CHROMEDRIVER_PATH', '/usr/local/bin/chromedriver')
         self.cookie_path = os.environ.get('COOKIE_PATH', '/tmp/cookie.pkl')
-        # TODO: other robot settings
-        # self.param = os.environ.get('PARAM', 'default_value')
+        self.acc_user = os.environ.get('ACC_USER')
+        self.acc_pass = os.environ.get('ACC_PASS')
 
         # Get driver
         self.driver = self.get_driver()
@@ -43,14 +44,41 @@ class Robot:
         try:
             self.inner_start()
         except BaseException as e:
-            os.exit('%s' % e)
+            sys.exit('%s' % e)
         finally:
             self.driver.close()
 
     def inner_start(self):
-        # TODO write code here :)
-        pass
-    
+
+        # Check user credentials
+        if len(self.acc_user) == 0 or len(self.acc_pass) == 0:
+            raise Exception('Missing account creds')
+
+        self.check_login()
+        time.sleep(5)
+
+    def check_login(self):
+        self.driver.get('https://www.fl.ru/login/')
+        self.load_cookies()
+        self.driver.get('https://www.fl.ru/login/')
+
+        try:
+            self.driver.find_element_by_css_selector('.b-dropdown-opener-picture')
+            self.driver.get('https://www.fl.ru/projects/')
+        except NoSuchElementException:
+            time.sleep(3)
+            login_input = self.driver.find_element_by_css_selector('input[name=login]')
+            login_input.send_keys(self.acc_user)
+
+            password_input = self.driver.find_element_by_css_selector('input[name=passwd]')
+            password_input.send_keys(self.acc_pass)
+
+            login_button = self.driver.find_element_by_css_selector('button[name=singin]')
+            login_button.click()
+
+            time.sleep(3)
+            self.store_cookies()
+
     def get_driver(self):
         """
         Get Driver
@@ -77,10 +105,10 @@ class Robot:
         opts.add_argument('user-agent=%s' % self.user_agent)
         opts.add_argument('start-maximized')
         opts.add_argument('disable-infobars')
-        opts.add_experimental_option("useAutomationExtension", False)
-        opts.add_experimental_option("forceDevToolsScreenshot", True)
-        opts.add_experimental_option("excludeSwitches", ['enable-automation'])
-        opts.add_experimental_option("prefs", {
+        opts.add_experimental_option('useAutomationExtension', False)
+        opts.add_experimental_option('forceDevToolsScreenshot', True)
+        opts.add_experimental_option('excludeSwitches', ['enable-automation'])
+        opts.add_experimental_option('prefs', {
             'intl.accept_languages': self.locale,
             'profile.default_content_settings.popups': 0,
         })
