@@ -3,6 +3,7 @@ import os
 import sys
 import pickle
 
+import telegram
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
@@ -30,6 +31,9 @@ class Robot:
         self.cookie_path = os.environ.get('COOKIE_PATH', '/tmp/cookie.pkl')
         self.acc_user = os.environ.get('ACC_USER')
         self.acc_pass = os.environ.get('ACC_PASS')
+        self.bot_token = os.environ.get('BOT_TOKEN')
+        self.chat_id = os.environ.get('CHAT_ID')
+        self.bot = self.get_bot()
 
         # Get driver
         self.driver = self.get_driver()
@@ -55,7 +59,23 @@ class Robot:
             raise Exception('Missing account creds')
 
         self.check_login()
-        time.sleep(5)
+        time.sleep(2)
+
+        # Scroll bottom
+        self.driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
+
+        # Scroll top
+        self.driver.execute_script('window.scrollTo(0, -document.body.scrollHeight);')
+
+        # Check new notifications
+        try:
+            self.driver.find_element_by_css_selector('.b-user-menu-clause-quantity')
+
+            # Send notify to telegram
+            self.bot.send_message(chat_id=self.chat_id, text='You have new notifications')
+
+        except NoSuchElementException:
+            print('No new messages')
 
     def check_login(self):
         self.driver.get('https://www.fl.ru/login/')
@@ -78,6 +98,9 @@ class Robot:
 
             time.sleep(3)
             self.store_cookies()
+
+    def get_bot(self):
+        return telegram.Bot(token=self.bot_token)
 
     def get_driver(self):
         """
