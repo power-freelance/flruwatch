@@ -15,7 +15,7 @@ services:
       - selenium
     environment:
       SELENIUM_URL: "http://selenium:4444/wd/hub"
-      ACC_USER: ""
-      ACC_PASS: ""
-      BOT_TOKEN: ""
-      CHAT_ID: ""
+      ACC_USER: ${ACC_USER}
+      ACC_PASS: ${ACC_PASS}
+      BOT_TOKEN: ${BOT_TOKEN}
+      CHAT_ID: ${CHAT_ID}
